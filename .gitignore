@@ -1,0 +1,4 @@
+/training.log
+/LLM_Model/MobileLLM-125M/
+/Fine_Tuning_Results/UMLSE_whole/model-00001-of-00002.safetensors
+/Fine_Tuning_Results/UMLSE_whole/model-00002-of-00002.safetensors
