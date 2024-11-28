@@ -1,14 +1,16 @@
 import argparse
-import os
-import math
-import tqdm.auto as tqdm
 import json
-import torch
-from torch.utils.data import Dataset
+import logging
+import math
+import os
+
 import datasets
+import torch
+import tqdm.auto as tqdm
 import transformers
 from torch.cuda.amp import GradScaler, autocast
-import logging
+from torch.utils.data import Dataset
+from torch.utils.tensorboard import SummaryWriter  # 导入 TensorBoard 库
 
 # 配置日志系统
 logging.basicConfig(
@@ -21,6 +23,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger()  # 获取日志对象
 
+
 # 数据处理相关函数
 def read_json(path):
     """读取 JSON 文件并返回内容"""
@@ -30,6 +33,7 @@ def read_json(path):
 
 class DatasetDataset(torch.utils.data.Dataset):
     """ 自定义数据集类，用于加载并返回输入数据 """
+
     def __init__(self, dataset):
         """初始化数据集"""
         self.dataset = dataset
@@ -48,6 +52,7 @@ class DatasetDataset(torch.utils.data.Dataset):
 
 class RepeatingLoader:
     """将 DataLoader 包装成无限循环的迭代器"""
+
     def __init__(self, loader):
         """
         初始化时，接收一个数据加载器。
@@ -140,10 +145,14 @@ def train_step(model, input_ids, labels, opt, scaler):
     return loss
 
 
-def log_train_status(step, loss, optimizer, actual_step, gradient_accumulation_steps, num_train_steps):
+def log_train_status(step, loss, optimizer, actual_step, gradient_accumulation_steps, num_train_steps, writer):
     """记录训练状态，包括损失、学习率和梯度累计等信息"""
     logger.info(f"Step {step}/{num_train_steps} - Loss={loss.item():.3f} - "
                 f"LR={optimizer.param_groups[0]['lr']:.6f} - Grad Accumulation Step={actual_step % gradient_accumulation_steps}")
+
+    # 将损失记录到 TensorBoard
+    writer.add_scalar('Loss/train', loss.item(), step)
+    writer.add_scalar('Learning Rate', optimizer.param_groups[0]['lr'], step)
 
 
 def save_checkpoint(model, save_dir, step, suffix=""):
@@ -167,7 +176,11 @@ def main():
     parser.add_argument("--gradient_accumulation_steps", type=int, default=4)
     parser.add_argument("--num_train_steps", type=int, default=1500)
     parser.add_argument("--save_interval", type=int, default=500)
+    parser.add_argument("--tensorboard_log_dir", type=str, default='tensorboard_logs')  # 添加日志路径
     args = parser.parse_args()
+
+    # 创建 TensorBoard Writer
+    writer = SummaryWriter(args.tensorboard_log_dir)
 
     # 数据加载
     logger.info("Setup Data")
@@ -206,7 +219,7 @@ def main():
         loss = train_step(model, input_ids, labels, opt, scaler)
 
         # 记录训练状态
-        log_train_status(step, loss, opt, step + 1, args.gradient_accumulation_steps, args.num_train_steps)
+        log_train_status(step, loss, opt, step + 1, args.gradient_accumulation_steps, args.num_train_steps, writer)
 
         # 梯度累积步骤
         if (step + 1) % args.gradient_accumulation_steps == 0:
@@ -218,6 +231,9 @@ def main():
 
     # 保存最终检查点
     save_checkpoint(model, args.save_dir, step + 1, suffix="-final")
+
+    # 关闭 TensorBoard Writer
+    writer.close()
 
 
 if __name__ == "__main__":
