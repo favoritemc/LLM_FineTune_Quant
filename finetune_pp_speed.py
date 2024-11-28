@@ -140,9 +140,9 @@ def train_step(model, input_ids, labels, opt, scaler):
     return loss
 
 
-def log_train_status(step, loss, optimizer, actual_step, gradient_accumulation_steps):
+def log_train_status(step, loss, optimizer, actual_step, gradient_accumulation_steps, num_train_steps):
     """记录训练状态，包括损失、学习率和梯度累计等信息"""
-    logger.info(f"Step {step}/{args.num_train_steps} - Loss={loss.item():.3f} - "
+    logger.info(f"Step {step}/{num_train_steps} - Loss={loss.item():.3f} - "
                 f"LR={optimizer.param_groups[0]['lr']:.6f} - Grad Accumulation Step={actual_step % gradient_accumulation_steps}")
 
 
@@ -206,7 +206,7 @@ def main():
         loss = train_step(model, input_ids, labels, opt, scaler)
 
         # 记录训练状态
-        log_train_status(step, loss, opt, step + 1, args.gradient_accumulation_steps)
+        log_train_status(step, loss, opt, step + 1, args.gradient_accumulation_steps, args.num_train_steps)
 
         # 梯度累积步骤
         if (step + 1) % args.gradient_accumulation_steps == 0:
