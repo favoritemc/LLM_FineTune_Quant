@@ -1,7 +1,5 @@
 # 微调LLAMA模型
 
-本项目旨在引导中文用户微调Large Language Model（[LLAMA](https://arxiv.org/abs/2302.13971)）。项目整合了多个框架（[Minimal LLaMA](https://github.com/zphang/minimal-llama)、[Alpaca](https://github.com/tatsu-lab/stanford_alpaca)、[LMFlow](https://github.com/OptimalScale/LMFlow/tree/main/src/lmflow)），避免不必要的封装，确保代码的可读性和易用性。
-
 ## 环境搭建
 
 1. **安装依赖包**
@@ -20,8 +18,6 @@
    pip install sentencepiece
    pip install transformers
    ```
-
-   如果你需要使用`peft`相关功能，可以进入`Python_Package`目录，并先使用`pip`安装线上包，确保所有依赖都能顺利安装：
 
    ```bash
    pip install -e .
@@ -45,7 +41,7 @@
 
 1. **选择微调脚本**
 
-   根据需求选择微调脚本。如果你想微调整个模型的参数，可以使用`finetune_pp.py`，如果只想微调部分参数（例如使用LoRA技术），则使用`finetune_pp_peft.py`。
+   根据需求选择微调脚本。如果你想微调整个模型的参数，可以使用`finetune_pp.py`
 
 2. **修改训练参数**
 
