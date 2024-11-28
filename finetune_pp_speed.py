@@ -8,6 +8,18 @@ from torch.utils.data import Dataset
 import datasets
 import transformers
 from torch.cuda.amp import GradScaler, autocast
+import logging
+
+# 配置日志系统
+logging.basicConfig(
+    level=logging.INFO,  # 设置日志输出的最低级别
+    format='%(asctime)s - %(levelname)s - %(message)s',  # 设置日志格式
+    handlers=[
+        logging.StreamHandler(),  # 输出到控制台
+        logging.FileHandler('training.log', mode='w')  # 同时输出到文件
+    ]
+)
+logger = logging.getLogger()  # 获取日志对象
 
 def read_json(path):
     with open(path, "r") as f:
@@ -66,7 +78,7 @@ def main():
     parser.add_argument("--save_interval", type=int, default=500)
     args = parser.parse_args()
 
-    print("Setup Data")
+    logger.info("Setup Data")
     dataset = datasets.load_from_disk(args.dataset_path)
     dataloader = RepeatingLoader(torch.utils.data.DataLoader(
         DatasetDataset(dataset),
@@ -75,7 +87,7 @@ def main():
         num_workers=4  # 增加数据加载时的多线程数
     ))
 
-    print("Setup Model")
+    logger.info("Setup Model")
     num_layers = read_json((args.model_path + "/config.json"))["num_hidden_layers"]
     device_ids = list(range(torch.cuda.device_count()))  # 获取所有可用的 GPU
     device_map = {
@@ -122,7 +134,7 @@ def main():
         model = torch.nn.DataParallel(model, device_ids=device_ids)  # 使用 DataParallel 进行多 GPU 训练
 
     # Train
-    print("Start training")
+    logger.info("Start training")
     generator = iter(dataloader)
     for step in tqdm.trange(args.num_train_steps):
         input_ids, labels = next(generator)
@@ -142,7 +154,7 @@ def main():
         scaler.update()  # 更新 scaler
 
         if step % 1 == 0:
-            print(f"Loss={loss.item():.3f}")
+            logger.info(f"Loss={loss.item():.3f}")
 
         actual_step = step + 1
         if actual_step % args.gradient_accumulation_steps == 0:
